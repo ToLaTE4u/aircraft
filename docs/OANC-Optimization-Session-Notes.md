@@ -45,6 +45,16 @@
 ### Q: Does aircraft icon remain centered?
 **A: YES** - Aircraft position is viewport-fixed (384, 384) and independent of canvas size
 
+## Recent Updates
+
+### 2025-10-13: Merged with Upstream
+✅ **Successfully merged latest changes from official FlyByWire repository**
+- **Upstream changes included:**
+  - OIT (Onboard Information Terminal) - New landing capability systems view
+  - Documentation fixes in Contributing.md
+- **Merge result:** No conflicts with OANC optimizations (changes were in different files)
+- **Branch status:** Fully up to date with upstream/master
+
 ## Next Steps (To Do)
 
 ### Phase 1 Testing
@@ -83,13 +93,53 @@
 ## Git Information
 - **Fork:** https://github.com/ToLaTE4u/aircraft.git
 - **Branch:** `feature/oanc-performance-optimization-phase1`
-- **Commit:** `feat(a380x): optimize OANC performance - Phase 1 optimizations`
+- **Upstream:** https://github.com/flybywiresim/aircraft.git (configured as `upstream` remote)
+- **Latest Commit:** `feat(a380x): optimize OANC performance - Phase 1 optimizations`
+- **Sync Status:** ✅ Merged with upstream/master (2025-10-13)
+
+### Git Remotes Configuration
+```bash
+origin    https://github.com/ToLaTE4u/aircraft.git (your fork)
+upstream  https://github.com/flybywiresim/aircraft.git (official FBW repo)
+```
+
+### Keeping Your Fork Updated
+To sync with the latest official FBW changes:
+```bash
+git fetch upstream
+git merge upstream/master
+git push origin feature/oanc-performance-optimization-phase1
+```
 
 ## To Continue on Another PC
-1. Clone your fork
-2. Checkout the feature branch
-3. Review this file and the PRD
-4. Continue from Phase 1 Testing or Phase 2 implementation
+1. **Clone your fork:**
+   ```bash
+   git clone https://github.com/ToLaTE4u/aircraft.git
+   cd aircraft
+   ```
+
+2. **Checkout the feature branch:**
+   ```bash
+   git checkout feature/oanc-performance-optimization-phase1
+   ```
+
+3. **Configure upstream remote:**
+   ```bash
+   git remote add upstream https://github.com/flybywiresim/aircraft.git
+   ```
+
+4. **Review context files:**
+   - Read this file (OANC-Optimization-Session-Notes.md)
+   - Read the PRD (PRD-OANC-Performance-Optimization.md)
+   - Review CLAUDE.md for project structure
+
+5. **Install and build:**
+   ```bash
+   npm install
+   npm run build-a380x:instruments
+   ```
+
+6. **Continue from Phase 1 Testing or Phase 2 implementation**
 
 ## Notes
 - Canvas size limited to 2048px protects against extreme memory usage
