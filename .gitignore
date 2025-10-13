@@ -101,7 +101,7 @@ large-files/node_modules
 /.env
 *.tgz
 localazy.keys.json
-claude.md
+
 
 # build artifacts
 node_modules/
