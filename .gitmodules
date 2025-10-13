@@ -1,3 +1,6 @@
 [submodule "aircraft-large-files"]
 	path = large-files
 	url = https://github.com/flybywiresim/aircraft-large-files
+[submodule "aircraft-large-files1"]
+	path = aircraft-large-files
+	url = https://github.com/flybywiresim/aircraft-large-files.git

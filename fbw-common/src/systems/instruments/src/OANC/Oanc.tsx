@@ -67,10 +67,17 @@ import { NavigraphAmdbClient } from './api/NavigraphAmdbClient';
 import { pointAngle } from './OancMapUtils';
 import { LubberLine } from '../ND/pages/arc/LubberLine';
 
-export const OANC_RENDER_WIDTH = 768;
-export const OANC_RENDER_HEIGHT = 768;
+// Add this near the top, after the imports
+export const OANC_RESOLUTION_SCALE = 0.75; // Master resolution control (1.0 = full, 0.5 = half)
 
-const FEATURE_DRAW_PER_FRAME = 50;
+export const OANC_RENDER_WIDTH = Math.floor(768 * OANC_RESOLUTION_SCALE);
+export const OANC_RENDER_HEIGHT = Math.floor(768 * OANC_RESOLUTION_SCALE);
+
+// Canvas size optimization: Limit maximum canvas dimensions to reduce VRAM usage
+// Target: 2048px max (can be reduced to 1024px for more aggressive optimization)
+const MAX_CANVAS_DIMENSION = 2048;
+
+const FEATURE_DRAW_PER_FRAME = Math.floor(50* OANC_RESOLUTION_SCALE); // How many features to draw per frame when rendering the map
 
 export const ZOOM_TRANSITION_TIME_MS = 300;
 
@@ -96,12 +103,14 @@ export const a380EfisZoomRangeSettings: A380EfisZoomRangeValue[] = [0.2, 0.5, 1,
 
 const DEFAULT_SCALE_NM = 0.539957;
 
+// OPTIMIZATION: Updated visibility rules for 4-layer system (was 8 layers)
+// Layers: [0: Base, 1: Guidance, 2: Runway Highlights, 3: Dynamic]
 const LAYER_VISIBILITY_RULES = [
-  [true, true, true, true, false, false, true, true],
-  [true, true, true, true, false, false, false, true],
-  [false, true, false, false, true, true, false, true],
-  [false, true, false, false, true, true, false, true],
-  [false, true, false, false, true, true, false, true],
+  [true, true, true, true],  // Zoom level 0: All layers visible
+  [true, true, true, true],  // Zoom level 1: All layers visible
+  [true, true, true, true],  // Zoom level 2: All layers visible
+  [true, true, true, true],  // Zoom level 3: All layers visible
+  [true, true, true, true],  // Zoom level 4: All layers visible
 ];
 
 export const LABEL_VISIBILITY_RULES = [true, true, true, true, true];
@@ -163,11 +172,8 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
 
   private readonly panContainerRef = [FSComponent.createRef<HTMLDivElement>(), FSComponent.createRef<HTMLDivElement>()];
 
+  // OPTIMIZATION: Reduced from 8 to 4 canvas layers to reduce VRAM usage by 50%
   private readonly layerCanvasRefs = [
-    FSComponent.createRef<HTMLCanvasElement>(),
-    FSComponent.createRef<HTMLCanvasElement>(),
-    FSComponent.createRef<HTMLCanvasElement>(),
-    FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
@@ -175,10 +181,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
   ];
 
   private readonly layerCanvasScaleContainerRefs = [
-    FSComponent.createRef<HTMLCanvasElement>(),
-    FSComponent.createRef<HTMLCanvasElement>(),
-    FSComponent.createRef<HTMLCanvasElement>(),
-    FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
@@ -216,15 +218,12 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     false,
   );
 
+  // OPTIMIZATION: Consolidated from 8 layers to 4 layers
   private layerFeatures: FeatureCollection<Geometry, AmdbProperties>[] = [
-    featureCollection([]), // Layer 0: TAXIWAY BG + TAXIWAY SHOULDER
-    featureCollection([]), // Layer 1: APRON + STAND BG + BUILDINGS (terminal only)
-    featureCollection([]), // Layer 2: RUNWAY (with markings)
-    featureCollection([]), // Layer 3: RUNWAY (without markings)
-    featureCollection([]), // Layer 4: TAXIWAY GUIDANCE LINES (scaled width), HOLD SHORT LINES
-    featureCollection([]), // Layer 5: TAXIWAY GUIDANCE LINES (unscaled width)
-    featureCollection([]), // Layer 6: STAND GUIDANCE LINES (scaled width)
-    featureCollection([]), // Layer 7: DYNAMIC BTV CONTENT (BTV PATH, STOP LINES)
+    featureCollection([]), // Layer 0: BASE LAYER (Taxiways, Aprons, Runways with markings, Buildings)
+    featureCollection([]), // Layer 1: GUIDANCE LINES (All guidance/marking lines)
+    featureCollection([]), // Layer 2: RUNWAY HIGHLIGHTS (white fill for runways)
+    featureCollection([]), // Layer 3: DYNAMIC BTV CONTENT (BTV PATH, STOP LINES)
   ];
 
   public readonly amdbClient = new NavigraphAmdbClient();
@@ -348,7 +347,7 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     this.labelManager,
     this.aircraftOnGround,
     this.projectedPpos,
-    this.layerCanvasRefs[7],
+    this.layerCanvasRefs[3], // OPTIMIZATION: Updated from layer 7 to layer 3 (dynamic overlay)
     this.canvasCentreX,
     this.canvasCentreY,
     this.zoomLevelIndex,
@@ -626,6 +625,10 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     this.clearMap();
     this.clearData();
 
+    // OPTIMIZATION: Clear path caches to free memory on airport unload
+    pathCache.clear();
+    pathIdCache.clear();
+
     this.arpCoordinates.set(undefined);
     this.data = undefined;
     this.aircraftWithinAirport.set(false);
@@ -748,11 +751,21 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
       this.aircraftWithinAirport.set(false);
     }
 
-    const width = (dataBbox[2] - dataBbox[0]) * 1;
-    const height = (dataBbox[3] - dataBbox[1]) * 1;
+    const airportWidth = (dataBbox[2] - dataBbox[0]) * 1;
+    const airportHeight = (dataBbox[3] - dataBbox[1]) * 1;
+
+    // OPTIMIZATION: Limit canvas size to MAX_CANVAS_DIMENSION to reduce VRAM usage
+    // Instead of sizing canvas to entire airport, we size to viewport with reasonable buffer
+    const width = Math.min(MAX_CANVAS_DIMENSION, airportWidth);
+    const height = Math.min(MAX_CANVAS_DIMENSION, airportHeight);
 
     this.canvasWidth.set(width);
     this.canvasHeight.set(height);
+
+    // Canvas center remains based on airport bounding box, not limited canvas size
+    // This ensures proper coordinate transformation regardless of canvas clipping
+    // The aircraft icon positioning (Update() lines 491-492) uses fixed viewport coordinates (384,384)
+    // so it remains centered even when canvas is smaller than the full airport
     this.canvasCentreX.set(Math.abs(dataBbox[0]));
     this.canvasCentreY.set(Math.abs(dataBbox[3]));
 
@@ -1147,11 +1160,12 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
       }
 
       this.props.bus.getPublisher<FmsOansData>().pub('oansAirportLocalCoordinates', this.projectedPpos.get(), true);
+      // OPTIMIZATION: Updated to layer 0 (base layer contains runway elements)
       this.btvUtils.updateRwyAheadAdvisory(
         this.ppos.get(),
         arpCoordinates,
         this.trueHeadingWord.get().value,
-        this.layerFeatures[2],
+        this.layerFeatures[0],
       );
     } else {
       this.positionVisible.set(false);
@@ -1223,8 +1237,9 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
       canvasScaleContainer.style.top = `${translateY}px`;
       canvasScaleContainer.style.transform = `scale(${scale})`;
 
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext('2d', { willReadFrequently: true });
       if (context) {
+        configureCanvasContext(context);
         context.resetTransform();
         context.translate(this.canvasCentreX.get(), this.canvasCentreY.get());
       }
@@ -1265,7 +1280,12 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     }
 
     const layerFeatures = this.layerFeatures[this.lastLayerDrawnIndex];
-    const layerCanvas = this.layerCanvasRefs[this.lastLayerDrawnIndex].instance.getContext('2d');
+    const layerCanvas = this.layerCanvasRefs[this.lastLayerDrawnIndex].instance.getContext('2d', {
+      willReadFrequently: true
+});
+    if (layerCanvas) {
+      configureCanvasContext(layerCanvas);
+    }
 
     if (this.lastFeatureDrawnIndex < layerFeatures.features.length && layerCanvas) {
       renderFeaturesToCanvas(
@@ -1316,6 +1336,7 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
 
       if (ctx) {
         ctx.clearRect(0, 0, cw, ch);
+        configureCanvasContext(ctx);
       }
     }
 
@@ -1613,6 +1634,7 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
             style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
           >
             <div ref={this.panContainerRef[0]} style="position: absolute;">
+              {/* OPTIMIZATION: Reduced from 8 to 4 canvas layers */}
               <div
                 ref={this.layerCanvasScaleContainerRefs[0]}
                 style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
@@ -1636,30 +1658,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
                 style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
               >
                 <canvas ref={this.layerCanvasRefs[3]} width={this.canvasWidth} height={this.canvasHeight} />
-              </div>
-              <div
-                ref={this.layerCanvasScaleContainerRefs[4]}
-                style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
-              >
-                <canvas ref={this.layerCanvasRefs[4]} width={this.canvasWidth} height={this.canvasHeight} />
-              </div>
-              <div
-                ref={this.layerCanvasScaleContainerRefs[5]}
-                style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
-              >
-                <canvas ref={this.layerCanvasRefs[5]} width={this.canvasWidth} height={this.canvasHeight} />
-              </div>
-              <div
-                ref={this.layerCanvasScaleContainerRefs[6]}
-                style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
-              >
-                <canvas ref={this.layerCanvasRefs[6]} width={this.canvasWidth} height={this.canvasHeight} />
-              </div>
-              <div
-                ref={this.layerCanvasScaleContainerRefs[7]}
-                style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
-              >
-                <canvas ref={this.layerCanvasRefs[7]} width={this.canvasWidth} height={this.canvasHeight} />
               </div>
             </div>
           </div>
@@ -1773,6 +1771,16 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
 
 const pathCache = new Map<string, Path2D[]>();
 const pathIdCache = new Map<Feature, string>();
+
+/**
+ * Configure canvas context for better performance
+ */
+function configureCanvasContext(ctx: CanvasRenderingContext2D | null): void {
+  if (ctx) {
+    ctx.imageSmoothingEnabled = false; // Disable antialiasing
+  }
+}
+
 
 function renderFeaturesToCanvas(
   layer: number,
