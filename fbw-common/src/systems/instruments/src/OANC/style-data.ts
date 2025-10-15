@@ -24,6 +24,7 @@ export interface StyleRule {
 }
 
 export const STYLE_DATA: Record<number, StyleRule[]> = {
+  // Phase 2 Step 1: Merged Layers 0+1 - Ground Surfaces (Taxiways, Shoulders, Aprons, Buildings)
   0: [
     {
       forFeatureTypes: [FeatureType.TaxiwayElement],
@@ -37,8 +38,6 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
       forFeatureTypes: [FeatureType.ServiceRoad],
       styles: { doStroke: false, doFill: true, fillStyle: '#b59824' },
     },
-  ],
-  1: [
     {
       forFeatureTypes: [FeatureType.ApronElement],
       styles: { doStroke: false, doFill: true, fillStyle: '#545454' },
@@ -58,7 +57,7 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
       styles: { doStroke: false, doFill: true, fillStyle: '#3286da' },
     },
   ],
-  2: [
+  1: [
     {
       forFeatureTypes: [
         FeatureType.RunwayElement,
@@ -78,7 +77,7 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
       styles: { doStroke: false, doFill: true, fillStyle: '#85451d' },
     },
   ],
-  3: [
+  2: [
     {
       forFeatureTypes: [FeatureType.TaxiwayGuidanceLine, FeatureType.RunwayExitLine],
       styles: { doStroke: true, doFill: false, strokeStyle: '#ffff00', lineWidth: 1.85 },
@@ -88,13 +87,13 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
       styles: { doStroke: true, doFill: false, strokeStyle: '#ff2f00' },
     },
   ],
-  4: [
+  3: [
     {
       forFeatureTypes: [FeatureType.TaxiwayGuidanceLine, FeatureType.RunwayExitLine],
       styles: { doStroke: true, doFill: false, strokeStyle: '#666666', lineWidth: 8 },
     },
   ],
-  5: [
+  4: [
     {
       forFeatureTypes: [
         FeatureType.RunwayElement,
@@ -105,11 +104,11 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
       styles: { doStroke: false, doFill: true, fillStyle: '#ffffff' },
     },
   ],
-  6: [
+  5: [
     {
       forFeatureTypes: [FeatureType.StandGuidanceLine],
       styles: { doStroke: true, doFill: false, strokeStyle: '#ffff00', lineWidth: 1.85 },
     },
   ],
-  7: [],
+  6: [],
 };

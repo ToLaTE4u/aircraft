@@ -96,12 +96,14 @@ export const a380EfisZoomRangeSettings: A380EfisZoomRangeValue[] = [0.2, 0.5, 1,
 
 const DEFAULT_SCALE_NM = 0.539957;
 
+// Phase 2 Step 1: Updated for 7 layers instead of 8 (merged layers 0+1)
+// Layer mapping: 0=Ground(merged), 1=Runways, 2=TaxiGuidance(yellow), 3=TaxiGuidance(gray), 4=Runway(white), 5=StandGuidance, 6=BTV
 const LAYER_VISIBILITY_RULES = [
-  [true, true, true, true, false, false, true, true],
-  [true, true, true, true, false, false, false, true],
-  [false, true, false, false, true, true, false, true],
-  [false, true, false, false, true, true, false, true],
-  [false, true, false, false, true, true, false, true],
+  [true, true, true, true, false, false, true],
+  [true, true, true, true, false, false, true],
+  [true, false, false, true, true, false, true],
+  [true, false, false, true, true, false, true],
+  [true, false, false, true, true, false, true],
 ];
 
 export const LABEL_VISIBILITY_RULES = [true, true, true, true, true];
@@ -159,7 +161,8 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
   // Performance diagnostic instrumentation
   private perfFrameCount = 0;
 
-  private perfLayerRenderTimes: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
+  // Phase 2 Step 1: Reduced from 8 to 7 layers
+  private perfLayerRenderTimes: number[] = [0, 0, 0, 0, 0, 0, 0];
 
   private perfLabelReflowTime = 0;
 
@@ -176,8 +179,8 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
 
   private readonly panContainerRef = [FSComponent.createRef<HTMLDivElement>(), FSComponent.createRef<HTMLDivElement>()];
 
+  // Phase 2 Step 1: Reduced from 8 to 7 layers (merged layers 0+1)
   private readonly layerCanvasRefs = [
-    FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
@@ -188,7 +191,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
   ];
 
   private readonly layerCanvasScaleContainerRefs = [
-    FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
@@ -229,15 +231,15 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     false,
   );
 
+  // Phase 2 Step 1: Reduced from 8 to 7 layers (merged layers 0+1)
   private layerFeatures: FeatureCollection<Geometry, AmdbProperties>[] = [
-    featureCollection([]), // Layer 0: TAXIWAY BG + TAXIWAY SHOULDER
-    featureCollection([]), // Layer 1: APRON + STAND BG + BUILDINGS (terminal only)
-    featureCollection([]), // Layer 2: RUNWAY (with markings)
-    featureCollection([]), // Layer 3: RUNWAY (without markings)
-    featureCollection([]), // Layer 4: TAXIWAY GUIDANCE LINES (scaled width), HOLD SHORT LINES
-    featureCollection([]), // Layer 5: TAXIWAY GUIDANCE LINES (unscaled width)
-    featureCollection([]), // Layer 6: STAND GUIDANCE LINES (scaled width)
-    featureCollection([]), // Layer 7: DYNAMIC BTV CONTENT (BTV PATH, STOP LINES)
+    featureCollection([]), // Layer 0: GROUND SURFACES (Taxiways, Shoulders, Aprons, Stands, Buildings) - MERGED
+    featureCollection([]), // Layer 1: RUNWAY (with markings)
+    featureCollection([]), // Layer 2: TAXIWAY GUIDANCE LINES (yellow), HOLD SHORT LINES (red)
+    featureCollection([]), // Layer 3: TAXIWAY GUIDANCE LINES (gray outline)
+    featureCollection([]), // Layer 4: RUNWAY (white fill)
+    featureCollection([]), // Layer 5: STAND GUIDANCE LINES (yellow)
+    featureCollection([]), // Layer 6: DYNAMIC BTV CONTENT (BTV PATH, STOP LINES)
   ];
 
   public readonly amdbClient = new NavigraphAmdbClient();
@@ -356,12 +358,13 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
 
   private readonly fmsDataStore = new OansFmsDataStore(this.props.bus);
 
+  // Phase 2 Step 1: BTV layer changed from index 7 to 6
   private readonly btvUtils = new OansBrakeToVacateSelection<T>(
     this.props.bus,
     this.labelManager,
     this.aircraftOnGround,
     this.projectedPpos,
-    this.layerCanvasRefs[7],
+    this.layerCanvasRefs[6],
     this.canvasCentreX,
     this.canvasCentreY,
     this.zoomLevelIndex,
@@ -1163,11 +1166,12 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
       }
 
       this.props.bus.getPublisher<FmsOansData>().pub('oansAirportLocalCoordinates', this.projectedPpos.get(), true);
+      // Phase 2 Step 1: Runway data moved from layer 2 to layer 1
       this.btvUtils.updateRwyAheadAdvisory(
         this.ppos.get(),
         arpCoordinates,
         this.trueHeadingWord.get().value,
-        this.layerFeatures[2],
+        this.layerFeatures[1],
       );
     } else {
       this.positionVisible.set(false);
@@ -1367,7 +1371,8 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     this.perfTotalUpdateTime = 0;
     this.perfTransformTime = 0;
     this.perfLabelReflowTime = 0;
-    this.perfLayerRenderTimes = [0, 0, 0, 0, 0, 0, 0, 0];
+    // Phase 2 Step 1: 7 layers instead of 8
+    this.perfLayerRenderTimes = [0, 0, 0, 0, 0, 0, 0];
     this.perfSampleCount++;
   }
 
@@ -1742,12 +1747,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
                 style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
               >
                 <canvas ref={this.layerCanvasRefs[6]} width={this.canvasWidth} height={this.canvasHeight} />
-              </div>
-              <div
-                ref={this.layerCanvasScaleContainerRefs[7]}
-                style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
-              >
-                <canvas ref={this.layerCanvasRefs[7]} width={this.canvasWidth} height={this.canvasHeight} />
               </div>
             </div>
           </div>
