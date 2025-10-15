@@ -772,8 +772,9 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     // Apply resolution scale to reduce canvas memory footprint
     this.canvasWidth.set(width * CANVAS_RESOLUTION_SCALE);
     this.canvasHeight.set(height * CANVAS_RESOLUTION_SCALE);
-    this.canvasCentreX.set(Math.abs(dataBbox[0]) * CANVAS_RESOLUTION_SCALE);
-    this.canvasCentreY.set(Math.abs(dataBbox[3]) * CANVAS_RESOLUTION_SCALE);
+    // Keep centre coordinates at full resolution - context.scale() will handle the scaling
+    this.canvasCentreX.set(Math.abs(dataBbox[0]));
+    this.canvasCentreY.set(Math.abs(dataBbox[3]));
 
     this.canvasCenterCoordinates = this.calculateCanvasCenterCoordinates();
 
