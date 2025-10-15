@@ -70,11 +70,6 @@ import { LubberLine } from '../ND/pages/arc/LubberLine';
 export const OANC_RENDER_WIDTH = 768;
 export const OANC_RENDER_HEIGHT = 768;
 
-// Performance optimization: Scale down canvas resolution to reduce VRAM usage
-// Labels remain sharp as they are HTML DOM elements, not canvas-based
-// Test values: 1.0 (full res), 0.75, 0.5, 0.25
-const CANVAS_RESOLUTION_SCALE = 0.5;
-
 const FEATURE_DRAW_PER_FRAME = 50;
 
 export const ZOOM_TRANSITION_TIME_MS = 300;
@@ -769,10 +764,8 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     const width = (dataBbox[2] - dataBbox[0]) * 1;
     const height = (dataBbox[3] - dataBbox[1]) * 1;
 
-    // Apply resolution scale to reduce canvas memory footprint
-    this.canvasWidth.set(width * CANVAS_RESOLUTION_SCALE);
-    this.canvasHeight.set(height * CANVAS_RESOLUTION_SCALE);
-    // Keep centre coordinates at full resolution - context.scale() will handle the scaling
+    this.canvasWidth.set(width);
+    this.canvasHeight.set(height);
     this.canvasCentreX.set(Math.abs(dataBbox[0]));
     this.canvasCentreY.set(Math.abs(dataBbox[3]));
 
@@ -1252,8 +1245,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
       const context = canvas.getContext('2d');
       if (context) {
         context.resetTransform();
-        // Apply resolution scale to drawing context
-        context.scale(CANVAS_RESOLUTION_SCALE, CANVAS_RESOLUTION_SCALE);
         context.translate(this.canvasCentreX.get(), this.canvasCentreY.get());
       }
     }
