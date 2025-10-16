@@ -88,29 +88,27 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
       styles: { doStroke: false, doFill: true, fillStyle: '#ffffff' },
     },
   ],
-  // Phase 2 Step 3: Merged all guidance line layers (old layers 2+3+4)
-  // CRITICAL: Gray outlines (lineWidth 8) MUST be drawn BEFORE yellow/red lines to create proper outline effect
   2: [
-    // First: Draw gray outlines (from old layer 3)
-    {
-      forFeatureTypes: [FeatureType.TaxiwayGuidanceLine, FeatureType.RunwayExitLine],
-      styles: { doStroke: true, doFill: false, strokeStyle: '#666666', lineWidth: 8 },
-    },
-    // Second: Draw yellow taxiway guidance lines on top (from old layer 2)
     {
       forFeatureTypes: [FeatureType.TaxiwayGuidanceLine, FeatureType.RunwayExitLine],
       styles: { doStroke: true, doFill: false, strokeStyle: '#ffff00', lineWidth: 1.85 },
     },
-    // Third: Draw red holding position lines (from old layer 2)
     {
       forFeatureTypes: [FeatureType.TaxiwayHoldingPosition],
       styles: { doStroke: true, doFill: false, strokeStyle: '#ff2f00' },
     },
-    // Fourth: Draw yellow stand guidance lines (from old layer 4)
+  ],
+  3: [
+    {
+      forFeatureTypes: [FeatureType.TaxiwayGuidanceLine, FeatureType.RunwayExitLine],
+      styles: { doStroke: true, doFill: false, strokeStyle: '#666666', lineWidth: 8 },
+    },
+  ],
+  4: [
     {
       forFeatureTypes: [FeatureType.StandGuidanceLine],
       styles: { doStroke: true, doFill: false, strokeStyle: '#ffff00', lineWidth: 1.85 },
     },
   ],
-  3: [],
+  5: [],
 };
