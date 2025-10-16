@@ -57,7 +57,6 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
       styles: { doStroke: false, doFill: true, fillStyle: '#3286da' },
     },
   ],
-  // Phase 2 Step 2: Merged runway layers (old layers 1+4)
   1: [
     {
       forFeatureTypes: [
@@ -76,16 +75,6 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
     {
       forFeatureTypes: [FeatureType.RunwayShoulder],
       styles: { doStroke: false, doFill: true, fillStyle: '#85451d' },
-    },
-    // Merged from old layer 4 - runway white fill
-    {
-      forFeatureTypes: [
-        FeatureType.RunwayElement,
-        FeatureType.RunwayIntersection,
-        FeatureType.RunwayDisplacedArea,
-        FeatureType.Stopway,
-      ],
-      styles: { doStroke: false, doFill: true, fillStyle: '#ffffff' },
     },
   ],
   2: [
@@ -106,9 +95,20 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
   ],
   4: [
     {
+      forFeatureTypes: [
+        FeatureType.RunwayElement,
+        FeatureType.RunwayIntersection,
+        FeatureType.RunwayDisplacedArea,
+        FeatureType.Stopway,
+      ],
+      styles: { doStroke: false, doFill: true, fillStyle: '#ffffff' },
+    },
+  ],
+  5: [
+    {
       forFeatureTypes: [FeatureType.StandGuidanceLine],
       styles: { doStroke: true, doFill: false, strokeStyle: '#ffff00', lineWidth: 1.85 },
     },
   ],
-  5: [],
+  6: [],
 };
