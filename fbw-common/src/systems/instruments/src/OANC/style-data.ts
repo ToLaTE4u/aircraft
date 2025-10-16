@@ -88,27 +88,31 @@ export const STYLE_DATA: Record<number, StyleRule[]> = {
       styles: { doStroke: false, doFill: true, fillStyle: '#ffffff' },
     },
   ],
+  // Phase 2 Step 3 Alternative: Merged yellow guidance lines (old layers 2+4)
+  // Safe to merge because they have DIFFERENT feature types (no rendering conflicts)
   2: [
+    // Taxiway guidance lines (yellow)
     {
       forFeatureTypes: [FeatureType.TaxiwayGuidanceLine, FeatureType.RunwayExitLine],
       styles: { doStroke: true, doFill: false, strokeStyle: '#ffff00', lineWidth: 1.85 },
     },
+    // Holding position lines (red)
     {
       forFeatureTypes: [FeatureType.TaxiwayHoldingPosition],
       styles: { doStroke: true, doFill: false, strokeStyle: '#ff2f00' },
     },
+    // Stand guidance lines (yellow) - merged from old layer 4
+    {
+      forFeatureTypes: [FeatureType.StandGuidanceLine],
+      styles: { doStroke: true, doFill: false, strokeStyle: '#ffff00', lineWidth: 1.85 },
+    },
   ],
+  // Gray outlines remain separate (cannot be merged with layer 2 due to same feature types)
   3: [
     {
       forFeatureTypes: [FeatureType.TaxiwayGuidanceLine, FeatureType.RunwayExitLine],
       styles: { doStroke: true, doFill: false, strokeStyle: '#666666', lineWidth: 8 },
     },
   ],
-  4: [
-    {
-      forFeatureTypes: [FeatureType.StandGuidanceLine],
-      styles: { doStroke: true, doFill: false, strokeStyle: '#ffff00', lineWidth: 1.85 },
-    },
-  ],
-  5: [],
+  4: [],
 };

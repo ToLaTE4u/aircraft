@@ -96,14 +96,14 @@ export const a380EfisZoomRangeSettings: A380EfisZoomRangeValue[] = [0.2, 0.5, 1,
 
 const DEFAULT_SCALE_NM = 0.539957;
 
-// Phase 2: Updated for 6 layers instead of 8 (Step 1: merged 0+1, Step 2: merged runways)
-// Layer mapping: 0=Ground(merged), 1=Runways(merged), 2=TaxiGuidance(yellow), 3=TaxiGuidance(gray), 4=StandGuidance, 5=BTV
+// Phase 2: Updated for 5 layers instead of 8 (Step 1: merged 0+1, Step 2: merged runways, Step 3 Alt: merged yellow guidance 2+4)
+// Layer mapping: 0=Ground(merged), 1=Runways(merged), 2=YellowGuidance(merged), 3=GrayOutlines, 4=BTV
 const LAYER_VISIBILITY_RULES = [
-  [true, true, true, true, false, true],
-  [true, true, true, true, false, true],
-  [true, false, false, true, false, true],
-  [true, false, false, true, false, true],
-  [true, false, false, true, false, true],
+  [true, true, true, true, true],
+  [true, true, true, true, true],
+  [true, false, false, true, true],
+  [true, false, false, true, true],
+  [true, false, false, true, true],
 ];
 
 export const LABEL_VISIBILITY_RULES = [true, true, true, true, true];
@@ -161,8 +161,8 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
   // Performance diagnostic instrumentation
   private perfFrameCount = 0;
 
-  // Phase 2: Reduced from 8 to 6 layers
-  private perfLayerRenderTimes: number[] = [0, 0, 0, 0, 0, 0];
+  // Phase 2: Reduced from 8 to 5 layers (Step 3 Alt: merged yellow guidance lines)
+  private perfLayerRenderTimes: number[] = [0, 0, 0, 0, 0];
 
   private perfLabelReflowTime = 0;
 
@@ -179,9 +179,8 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
 
   private readonly panContainerRef = [FSComponent.createRef<HTMLDivElement>(), FSComponent.createRef<HTMLDivElement>()];
 
-  // Phase 2: Reduced from 8 to 6 layers (Step 1: merged 0+1, Step 2: merged runways 1+4)
+  // Phase 2: Reduced from 8 to 5 layers (Step 3 Alt: merged yellow guidance lines 2+4)
   private readonly layerCanvasRefs = [
-    FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
@@ -190,7 +189,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
   ];
 
   private readonly layerCanvasScaleContainerRefs = [
-    FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
     FSComponent.createRef<HTMLCanvasElement>(),
@@ -229,14 +227,13 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     false,
   );
 
-  // Phase 2: Reduced from 8 to 6 layers (Step 1: merged 0+1, Step 2: merged runways)
+  // Phase 2: Reduced from 8 to 5 layers (Step 3 Alt: merged yellow guidance lines)
   private layerFeatures: FeatureCollection<Geometry, AmdbProperties>[] = [
     featureCollection([]), // Layer 0: GROUND SURFACES (Taxiways, Shoulders, Aprons, Stands, Buildings) - MERGED
     featureCollection([]), // Layer 1: RUNWAYS (gray + white fill) - MERGED
-    featureCollection([]), // Layer 2: TAXIWAY GUIDANCE LINES (yellow), HOLD SHORT LINES (red)
-    featureCollection([]), // Layer 3: TAXIWAY GUIDANCE LINES (gray outline)
-    featureCollection([]), // Layer 4: STAND GUIDANCE LINES (yellow)
-    featureCollection([]), // Layer 5: DYNAMIC BTV CONTENT (BTV PATH, STOP LINES)
+    featureCollection([]), // Layer 2: ALL YELLOW GUIDANCE LINES (taxiway + stand) - MERGED
+    featureCollection([]), // Layer 3: TAXIWAY GUIDANCE GRAY OUTLINES (must stay separate)
+    featureCollection([]), // Layer 4: DYNAMIC BTV CONTENT (BTV PATH, STOP LINES)
   ];
 
   public readonly amdbClient = new NavigraphAmdbClient();
@@ -355,13 +352,13 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
 
   private readonly fmsDataStore = new OansFmsDataStore(this.props.bus);
 
-  // Phase 2: BTV layer index changed (Step 1: 7→6, Step 2: 6→5)
+  // Phase 2: BTV layer index changed (Step 1: 7→6, Step 2: 6→5, Step 3 Alt: 5→4)
   private readonly btvUtils = new OansBrakeToVacateSelection<T>(
     this.props.bus,
     this.labelManager,
     this.aircraftOnGround,
     this.projectedPpos,
-    this.layerCanvasRefs[5],
+    this.layerCanvasRefs[4],
     this.canvasCentreX,
     this.canvasCentreY,
     this.zoomLevelIndex,
@@ -1368,8 +1365,8 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     this.perfTotalUpdateTime = 0;
     this.perfTransformTime = 0;
     this.perfLabelReflowTime = 0;
-    // Phase 2: 6 layers instead of 8
-    this.perfLayerRenderTimes = [0, 0, 0, 0, 0, 0];
+    // Phase 2: 5 layers instead of 8 (Step 3 Alt)
+    this.perfLayerRenderTimes = [0, 0, 0, 0, 0];
     this.perfSampleCount++;
   }
 
@@ -1732,12 +1729,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
                 style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
               >
                 <canvas ref={this.layerCanvasRefs[4]} width={this.canvasWidth} height={this.canvasHeight} />
-              </div>
-              <div
-                ref={this.layerCanvasScaleContainerRefs[5]}
-                style={`position: absolute; transition: transform ${ZOOM_TRANSITION_TIME_MS}ms linear;`}
-              >
-                <canvas ref={this.layerCanvasRefs[5]} width={this.canvasWidth} height={this.canvasHeight} />
               </div>
             </div>
           </div>
