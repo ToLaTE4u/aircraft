@@ -1102,8 +1102,48 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
 
   private lastTime = 0;
 
+  // Rendering throttling configuration (ms between updates)
+  // 0ms = No throttling (~60 FPS, original)
+  // 16ms = ~60 FPS
+  // 33ms = ~30 FPS
+  // 50ms = ~20 FPS
+  // 66ms = ~15 FPS
+  // Higher values = lower GPU load but less smooth rendering
+  private readonly UPDATE_THROTTLE_MS = 66; // Aggressive throttling: 15 FPS
+
+  private lastUpdateTime = 0;
+  private updateFrameCount = 0;
+  private lastUpdateLogTime = 0;
+  private throttledFrameCount = 0; // Count how many frames were skipped
+
   public Update() {
     const now = Date.now();
+
+    // Log throttling configuration on first update
+    if (this.updateFrameCount === 0) {
+      console.log(`[OANC] Rendering throttling ENABLED: ${this.UPDATE_THROTTLE_MS}ms (~${Math.round(1000 / this.UPDATE_THROTTLE_MS)} FPS target)`);
+      this.lastUpdateLogTime = now;
+    }
+
+    // Throttle updates to reduce GPU workload
+    if (now - this.lastUpdateTime < this.UPDATE_THROTTLE_MS) {
+      this.throttledFrameCount++; // Count skipped frames
+      return; // Skip this frame
+    }
+
+    // Log actual FPS every 5 seconds
+    this.updateFrameCount++;
+    if (now - this.lastUpdateLogTime >= 5000) {
+      const actualFps = this.updateFrameCount / ((now - this.lastUpdateLogTime) / 1000);
+      const totalCallsPerSec = (this.updateFrameCount + this.throttledFrameCount) / ((now - this.lastUpdateLogTime) / 1000);
+      console.log(`[OANC] Actual update FPS: ${actualFps.toFixed(1)} (target: ~${Math.round(1000 / this.UPDATE_THROTTLE_MS)} FPS) | MSFS called Update() ${totalCallsPerSec.toFixed(1)} times/sec | Skipped ${this.throttledFrameCount} frames`);
+      this.updateFrameCount = 0;
+      this.throttledFrameCount = 0;
+      this.lastUpdateLogTime = now;
+    }
+
+    this.lastUpdateTime = now;
+
     const deltaTime = (now - this.lastTime) / 1_000;
     this.lastTime = now;
 
