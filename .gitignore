@@ -101,6 +101,7 @@ large-files/node_modules
 /.env
 *.tgz
 localazy.keys.json
+Changelog_ToLaTE4u.md
 
 # build artifacts
 node_modules/
