@@ -55,17 +55,18 @@ class A380X_PFD extends BaseInstrument {
   private readonly sfccPublisher = new SfccSimVarPublisher(this.bus);
 
   // Rendering throttling configuration (ms between updates)
-  // 0ms = No throttling (~60 FPS, original)
-  // 16ms = ~60 FPS
-  // 33ms = ~30 FPS
-  // 50ms = ~20 FPS
+  // Dynamically controlled via SimVar from EFB settings
+  // 0 = Unlimited (~60 FPS), >0 = target FPS
+  // Converted to ms: throttleMs = FPS > 0 ? (1000 / FPS) : 16
   // Flight instruments need more frequent updates than map displays
-  private readonly UPDATE_THROTTLE_MS = 33; // 30 FPS for flight instruments
+  private updateThrottleMs = 33; // Default: 30 FPS (will be updated from SimVar)
+  private targetFps = 30; // Target FPS for logging
 
   private lastUpdateTime = 0;
   private updateFrameCount = 0;
   private lastUpdateLogTime = 0;
   private throttledFrameCount = 0;
+  private lastThrottleCheck = 0; // When we last checked the SimVar
 
   constructor() {
     super();
@@ -121,15 +122,29 @@ class A380X_PFD extends BaseInstrument {
   public Update(): void {
     const now = Date.now();
 
+    // Update FPS throttle setting from SimVar every 2 seconds
+    if (now - this.lastThrottleCheck > 2000) {
+      const fps = SimVar.GetSimVarValue('L:A380X_PFD_FPS_THROTTLE', 'number');
+      if (fps !== this.targetFps) {
+        this.targetFps = fps;
+        // Convert FPS to milliseconds between frames
+        // 0 = unlimited (use 16ms for ~60 FPS)
+        this.updateThrottleMs = fps > 0 ? Math.round(1000 / fps) : 16;
+        const side = getDisplayIndex() === 1 ? 'L' : 'R';
+        console.log(`[PFD ${side}] FPS setting changed to: ${fps} FPS (${this.updateThrottleMs}ms between frames)`);
+      }
+      this.lastThrottleCheck = now;
+    }
+
     // Log throttling configuration on first update
     if (this.updateFrameCount === 0) {
       const side = getDisplayIndex() === 1 ? 'L' : 'R';
-      console.log(`[PFD ${side}] Rendering throttling ENABLED: ${this.UPDATE_THROTTLE_MS}ms (~${Math.round(1000 / this.UPDATE_THROTTLE_MS)} FPS target)`);
+      console.log(`[PFD ${side}] Rendering throttling ENABLED: ${this.updateThrottleMs}ms (~${Math.round(1000 / this.updateThrottleMs)} FPS target)`);
       this.lastUpdateLogTime = now;
     }
 
     // Throttle updates to reduce GPU workload
-    if (now - this.lastUpdateTime < this.UPDATE_THROTTLE_MS) {
+    if (now - this.lastUpdateTime < this.updateThrottleMs) {
       this.throttledFrameCount++;
       return; // Skip this frame
     }
@@ -140,7 +155,7 @@ class A380X_PFD extends BaseInstrument {
       const side = getDisplayIndex() === 1 ? 'L' : 'R';
       const actualFps = this.updateFrameCount / ((now - this.lastUpdateLogTime) / 1000);
       const totalCallsPerSec = (this.updateFrameCount + this.throttledFrameCount) / ((now - this.lastUpdateLogTime) / 1000);
-      console.log(`[PFD ${side}] Actual update FPS: ${actualFps.toFixed(1)} (target: ~${Math.round(1000 / this.UPDATE_THROTTLE_MS)} FPS) | MSFS called Update() ${totalCallsPerSec.toFixed(1)} times/sec | Skipped ${this.throttledFrameCount} frames`);
+      console.log(`[PFD ${side}] Actual update FPS: ${actualFps.toFixed(1)} (target: ~${Math.round(1000 / this.updateThrottleMs)} FPS) | MSFS called Update() ${totalCallsPerSec.toFixed(1)} times/sec | Skipped ${this.throttledFrameCount} frames`);
       this.updateFrameCount = 0;
       this.throttledFrameCount = 0;
       this.lastUpdateLogTime = now;

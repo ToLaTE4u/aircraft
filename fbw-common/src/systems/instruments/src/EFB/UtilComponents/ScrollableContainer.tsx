@@ -91,7 +91,7 @@ export const ScrollableContainer: FC<ScrollableContainerProps> = ({
       }}
       onMouseDown={handleMouseDown}
     >
-      <div className={`${contentOverflows && 'mr-6'} ${innerClassName}`} ref={contentRef}>
+      <div className={`${contentOverflows && 'mr-10'} ${innerClassName}`} ref={contentRef}>
         {children}
       </div>
     </div>

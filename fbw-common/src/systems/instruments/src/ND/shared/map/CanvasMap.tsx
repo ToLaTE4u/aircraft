@@ -131,6 +131,18 @@ export class CanvasMap extends DisplayComponent<CanvasMapProps> {
 
   private lastFrameTimestamp: number = 0;
 
+  // Rendering throttling configuration (ms between updates)
+  // Dynamically controlled via SimVar from EFB settings
+  // 0 = Unlimited (~60 FPS), >0 = target FPS
+  // Converted to ms: throttleMs = FPS > 0 ? (1000 / FPS) : 8
+  private frameThrottleMs = 66; // Default: 15 FPS (will be updated from SimVar)
+  private targetFps = 15; // Target FPS for logging
+  private lastFrameTime = 0; // For manual throttling in handleFrame()
+  private lastThrottleCheck = 0; // When we last checked the SimVar
+  private frameCount = 0;
+  private throttledFrameCount = 0;
+  private lastLogTime = 0;
+
   onAfterRender(node: VNode) {
     super.onAfterRender(node);
 
@@ -149,6 +161,12 @@ export class CanvasMap extends DisplayComponent<CanvasMapProps> {
       .on('ndMode')
       .whenChanged()
       .handle((v) => this.mapMode.set(v));
+
+    // Log initial throttling configuration
+    console.log(
+      `[ND CanvasMap] Rendering throttling ENABLED: ${this.frameThrottleMs}ms (~${Math.round(1000 / this.frameThrottleMs)} FPS target)`,
+    );
+    this.lastLogTime = Date.now();
 
     this.setupCallbacks();
     this.setupEvents();
@@ -405,6 +423,41 @@ export class CanvasMap extends DisplayComponent<CanvasMapProps> {
   }
 
   private handleFrame(_deltaTime: number) {
+    const now = performance.now();
+
+    // Update FPS throttle setting from SimVar every 2 seconds
+    if (now - this.lastThrottleCheck > 2000) {
+      const fps = SimVar.GetSimVarValue('L:A380X_ND_FPS_THROTTLE', 'number');
+      if (fps !== this.targetFps) {
+        this.targetFps = fps;
+        // Convert FPS to milliseconds between frames
+        // 0 = unlimited (use 8ms for ~125 FPS)
+        this.frameThrottleMs = fps > 0 ? Math.round(1000 / fps) : 8;
+        console.log(`[ND CanvasMap] FPS setting changed to: ${fps} FPS (${this.frameThrottleMs}ms between frames)`);
+      }
+      this.lastThrottleCheck = now;
+    }
+
+    // Manual throttling check
+    if (now - this.lastFrameTime < this.frameThrottleMs) {
+      this.throttledFrameCount++;
+      return; // Skip this frame
+    }
+    this.lastFrameTime = now;
+
+    // Log actual FPS every 5 seconds
+    this.frameCount++;
+    if (now - this.lastLogTime >= 5000) {
+      const actualFps = this.frameCount / ((now - this.lastLogTime) / 1000);
+      const totalCallsPerSec = (this.frameCount + this.throttledFrameCount) / ((now - this.lastLogTime) / 1000);
+      console.log(
+        `[ND CanvasMap] Actual render FPS: ${actualFps.toFixed(1)} (target: ~${Math.round(1000 / this.frameThrottleMs)} FPS) | Called ${totalCallsPerSec.toFixed(1)} times/sec | Skipped ${this.throttledFrameCount} frames`,
+      );
+      this.frameCount = 0;
+      this.throttledFrameCount = 0;
+      this.lastLogTime = now;
+    }
+
     const canvas = this.canvasRef.instance;
     const context = canvas.getContext('2d');
 

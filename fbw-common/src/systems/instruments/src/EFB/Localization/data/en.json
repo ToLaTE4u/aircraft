@@ -685,7 +685,10 @@
       "SimbridgeMachine": "Simbridge Host Machine",
       "SimbridgeLocal": "This PC",
       "SimbridgeRemote": "Remote PC",
-      "SimbridgeEmptyAddress": "SimBridge Remote IP Address cannot be empty!"
+      "SimbridgeEmptyAddress": "SimBridge Remote IP Address cannot be empty!",
+      "NavigationDisplayFps": "Navigation Display (ND) FPS",
+      "PrimaryFlightDisplayFps": "Primary Flight Display (PFD) FPS",
+      "AirportMapFps": "Airport Map (OANC) FPS"
     },
     "ThirdPartyOptions": {
       "TT": {

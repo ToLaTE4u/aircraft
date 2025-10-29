@@ -53,6 +53,33 @@ export const SimOptionsPage = () => {
     0,
   );
 
+  // Display FPS Throttling Settings - High-End defaults
+  const [ndFps, setNdFps] = usePersistentNumberProperty('CONFIG_A380X_ND_DISPLAY_FPS', 60);
+  const [pfdFps, setPfdFps] = usePersistentNumberProperty('CONFIG_A380X_PFD_DISPLAY_FPS', 60);
+  const [oancFps, setOancFps] = usePersistentNumberProperty('CONFIG_A380X_OANC_DISPLAY_FPS', 30);
+
+  const [, setNdFpsSimVar] = useSimVar('L:A380X_ND_FPS_THROTTLE', 'number', 60);
+  const [, setPfdFpsSimVar] = useSimVar('L:A380X_PFD_FPS_THROTTLE', 'number', 60);
+  const [, setOancFpsSimVar] = useSimVar('L:A380X_OANC_FPS_THROTTLE', 'number', 30);
+
+  const handleNdFpsChange = (value: string) => {
+    const fps = Math.max(10, Math.min(120, Number.parseInt(value) || 60));
+    setNdFps(fps);
+    setNdFpsSimVar(fps);
+  };
+
+  const handlePfdFpsChange = (value: string) => {
+    const fps = Math.max(10, Math.min(120, Number.parseInt(value) || 60));
+    setPfdFps(fps);
+    setPfdFpsSimVar(fps);
+  };
+
+  const handleOancFpsChange = (value: string) => {
+    const fps = Math.max(10, Math.min(120, Number.parseInt(value) || 30));
+    setOancFps(fps);
+    setOancFpsSimVar(fps);
+  };
+
   const defaultBaroButtons: ButtonType[] = [
     { name: t('Settings.SimOptions.Auto'), setting: 'AUTO' },
     { name: t('Settings.SimOptions.inHg'), setting: 'IN HG' },
@@ -287,6 +314,44 @@ export const SimOptionsPage = () => {
               )}
             </SettingGroup>
           )}
+
+          <SettingGroup>
+            <SettingItem name={t('Settings.SimOptions.NavigationDisplayFps')}>
+              <SimpleInput
+                min={10}
+                max={120}
+                value={ndFps}
+                className="w-20 text-center"
+                onChange={handleNdFpsChange}
+                number
+                placeholder="60"
+              />
+            </SettingItem>
+
+            <SettingItem name={t('Settings.SimOptions.PrimaryFlightDisplayFps')}>
+              <SimpleInput
+                min={10}
+                max={120}
+                value={pfdFps}
+                className="w-20 text-center"
+                onChange={handlePfdFpsChange}
+                number
+                placeholder="60"
+              />
+            </SettingItem>
+
+            <SettingItem name={t('Settings.SimOptions.AirportMapFps')}>
+              <SimpleInput
+                min={10}
+                max={120}
+                value={oancFps}
+                className="w-20 text-center"
+                onChange={handleOancFpsChange}
+                number
+                placeholder="30"
+              />
+            </SettingItem>
+          </SettingGroup>
 
           {aircraftContext.settingsPages.sim.oansPerformanceMode && (
             <SettingItem name={t('Settings.SimOptions.OansPerformanceMode')}>
