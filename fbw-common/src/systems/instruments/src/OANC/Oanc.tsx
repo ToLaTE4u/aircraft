@@ -151,7 +151,7 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
   // Performance diagnostic instrumentation
   private perfFrameCount = 0;
 
-  private perfLayerRenderTimes: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
+  private perfLayerRenderTimes: number[] = [0, 0, 0, 0, 0];
 
   private perfLabelReflowTime = 0;
 
@@ -1176,8 +1176,8 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
       this.lastUpdateLogTime = now;
     }
 
-    // Throttle updates to reduce GPU workload
-    if (now - this.lastUpdateTime < this.updateThrottleMs) {
+    // Throttle updates to reduce GPU workload (but NOT during initial loading/drawing)
+    if (this.doneDrawing && now - this.lastUpdateTime < this.updateThrottleMs) {
       this.throttledFrameCount++; // Count skipped frames
       return; // Skip this frame
     }
@@ -1465,7 +1465,7 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     this.perfTotalUpdateTime = 0;
     this.perfTransformTime = 0;
     this.perfLabelReflowTime = 0;
-    this.perfLayerRenderTimes = [0, 0, 0, 0, 0, 0, 0, 0];
+    this.perfLayerRenderTimes = [0, 0, 0, 0, 0];
     this.perfSampleCount++;
   }
 
