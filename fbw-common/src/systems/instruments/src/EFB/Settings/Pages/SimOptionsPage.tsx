@@ -63,19 +63,19 @@ export const SimOptionsPage = () => {
   const [, setOancFpsSimVar] = useSimVar('L:A380X_OANC_FPS_THROTTLE', 'number', 30);
 
   const handleNdFpsChange = (value: string) => {
-    const fps = Math.max(10, Math.min(120, Number.parseInt(value) || 60));
+    const fps = Math.max(1, Math.min(120, Number.parseInt(value) || 60));
     setNdFps(fps);
     setNdFpsSimVar(fps);
   };
 
   const handlePfdFpsChange = (value: string) => {
-    const fps = Math.max(10, Math.min(120, Number.parseInt(value) || 60));
+    const fps = Math.max(1, Math.min(120, Number.parseInt(value) || 60));
     setPfdFps(fps);
     setPfdFpsSimVar(fps);
   };
 
   const handleOancFpsChange = (value: string) => {
-    const fps = Math.max(10, Math.min(120, Number.parseInt(value) || 30));
+    const fps = Math.max(1, Math.min(120, Number.parseInt(value) || 30));
     setOancFps(fps);
     setOancFpsSimVar(fps);
   };
@@ -318,7 +318,7 @@ export const SimOptionsPage = () => {
           <SettingGroup>
             <SettingItem name={t('Settings.SimOptions.NavigationDisplayFps')}>
               <SimpleInput
-                min={10}
+                min={1}
                 max={120}
                 value={ndFps}
                 className="w-20 text-center"
@@ -330,7 +330,7 @@ export const SimOptionsPage = () => {
 
             <SettingItem name={t('Settings.SimOptions.PrimaryFlightDisplayFps')}>
               <SimpleInput
-                min={10}
+                min={1}
                 max={120}
                 value={pfdFps}
                 className="w-20 text-center"
@@ -342,7 +342,7 @@ export const SimOptionsPage = () => {
 
             <SettingItem name={t('Settings.SimOptions.AirportMapFps')}>
               <SimpleInput
-                min={10}
+                min={1}
                 max={120}
                 value={oancFps}
                 className="w-20 text-center"
