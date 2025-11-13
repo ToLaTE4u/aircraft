@@ -148,19 +148,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     FcuSimVars & OansControlEvents & FmsOansData & GenericAdirsEvents
   >();
 
-  // Performance diagnostic instrumentation
-  private perfFrameCount = 0;
-
-  private perfLayerRenderTimes: number[] = [0, 0, 0, 0, 0];
-
-  private perfLabelReflowTime = 0;
-
-  private perfTransformTime = 0;
-
-  private perfTotalUpdateTime = 0;
-
-  private perfSampleCount = 0;
-
   private readonly animationContainerRef = [
     FSComponent.createRef<HTMLDivElement>(),
     FSComponent.createRef<HTMLDivElement>(),
@@ -1146,9 +1133,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     const deltaTime = (now - this.lastTime) / 1_000;
     this.lastTime = now;
 
-    // Performance diagnostic: Start timing
-    const perfUpdateStart = performance.now();
-
     if (this.data && this.resetPulled.get()) {
       this.unloadAirportMap(true);
     }
@@ -1263,9 +1247,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
 
     const rotate = -mapCurrentHeading;
 
-    // Performance diagnostic: Start transform timing
-    const perfTransformStart = performance.now();
-
     // Transform layers
     for (let i = 0; i < this.layerCanvasRefs.length; i++) {
       const layerSpec = LAYER_SPECIFICATIONS[i];
@@ -1300,10 +1281,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     this.aircraftY.set(384);
     this.aircraftRotation.set(this.trueHeadingWord.get().value - mapCurrentHeading);
 
-    // Performance diagnostic: End transform timing
-    const perfTransformEnd = performance.now();
-    this.perfTransformTime += perfTransformEnd - perfTransformStart;
-
     // FIXME Use this to update pan offset when zooming
     /* if (this.previousZoomLevelIndex.get() !== this.zoomLevelIndex.get()) {
             // In PLAN mode, re-pan to zoom in to center of screen
@@ -1324,30 +1301,12 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
       const btvRwy = this.btvUtils.btvRunway.get();
       const btvExit = this.btvUtils.btvExit.get();
 
-      // Performance diagnostic: Start label reflow timing
-      const perfLabelReflowStart = performance.now();
-
       this.labelManager.reflowLabels(
         depRwy !== null ? depRwy : undefined,
         ldgRwy !== null ? ldgRwy : undefined,
         btvRwy !== null ? btvRwy : undefined,
         btvExit !== null ? btvExit : undefined,
       );
-
-      // Performance diagnostic: End label reflow timing
-      const perfLabelReflowEnd = performance.now();
-      this.perfLabelReflowTime += perfLabelReflowEnd - perfLabelReflowStart;
-
-      // Performance diagnostic: End total update timing
-      const perfUpdateEnd = performance.now();
-      this.perfTotalUpdateTime += perfUpdateEnd - perfUpdateStart;
-      this.perfFrameCount++;
-
-      // Log performance metrics every 60 frames
-      if (this.perfFrameCount >= 60) {
-        this.logPerformanceMetrics();
-      }
-
       return;
     }
 
@@ -1355,9 +1314,6 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
     const layerCanvas = this.layerCanvasRefs[this.lastLayerDrawnIndex].instance.getContext('2d');
 
     if (this.lastFeatureDrawnIndex < layerFeatures.features.length && layerCanvas) {
-      // Performance diagnostic: Start layer render timing
-      const perfLayerRenderStart = performance.now();
-
       renderFeaturesToCanvas(
         this.lastLayerDrawnIndex,
         layerCanvas,
@@ -1366,55 +1322,11 @@ export class Oanc<T extends number> extends DisplayComponent<OancProps<T>> {
         this.lastFeatureDrawnIndex + FEATURE_DRAW_PER_FRAME,
       );
 
-      // Performance diagnostic: End layer render timing
-      const perfLayerRenderEnd = performance.now();
-      this.perfLayerRenderTimes[this.lastLayerDrawnIndex] += perfLayerRenderEnd - perfLayerRenderStart;
-
       this.lastFeatureDrawnIndex += FEATURE_DRAW_PER_FRAME;
     } else {
       this.lastLayerDrawnIndex++;
       this.lastFeatureDrawnIndex = 0;
     }
-
-    // Performance diagnostic: End total update timing (for rendering frames)
-    const perfUpdateEnd = performance.now();
-    this.perfTotalUpdateTime += perfUpdateEnd - perfUpdateStart;
-    this.perfFrameCount++;
-
-    // Log performance metrics every 60 frames
-    if (this.perfFrameCount >= 60) {
-      this.logPerformanceMetrics();
-    }
-  }
-
-  /**
-   * Logs performance metrics to console for diagnostic purposes
-   */
-  private logPerformanceMetrics() {
-    const avgTotalUpdate = this.perfTotalUpdateTime / this.perfFrameCount;
-    const avgTransform = this.perfTransformTime / this.perfFrameCount;
-    const avgLabelReflow = this.perfLabelReflowTime / this.perfFrameCount;
-
-    console.log('=== OANS Performance Metrics (avg over 60 frames) ===');
-    console.log(`Total Update Time: ${avgTotalUpdate.toFixed(3)}ms`);
-    console.log(`Transform Time: ${avgTransform.toFixed(3)}ms`);
-    console.log(`Label Reflow Time: ${avgLabelReflow.toFixed(3)}ms`);
-    console.log('Layer Render Times:');
-    for (let i = 0; i < this.perfLayerRenderTimes.length; i++) {
-      const avgLayerTime = this.perfLayerRenderTimes[i] / this.perfFrameCount;
-      const featureCount = this.layerFeatures[i].features.length;
-      console.log(`  Layer ${i}: ${avgLayerTime.toFixed(3)}ms (${featureCount} features)`);
-    }
-    console.log(`Total Visible Labels: ${this.labelManager.visibleLabels.length}`);
-    console.log('=====================================================');
-
-    // Reset counters
-    this.perfFrameCount = 0;
-    this.perfTotalUpdateTime = 0;
-    this.perfTransformTime = 0;
-    this.perfLabelReflowTime = 0;
-    this.perfLayerRenderTimes = [0, 0, 0, 0, 0];
-    this.perfSampleCount++;
   }
 
   private updateLabelClasses() {
