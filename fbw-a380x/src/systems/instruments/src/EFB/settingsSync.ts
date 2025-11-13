@@ -21,9 +21,4 @@ export const a380xSyncedSettings: SyncedSettingDefinition[] = [
     localVarName: 'L:A380X_PFD_FPS_THROTTLE',
     defaultValue: '30',
   },
-  {
-    configKey: 'CONFIG_A380X_OANC_DISPLAY_FPS',
-    localVarName: 'L:A380X_OANC_FPS_THROTTLE',
-    defaultValue: '15',
-  },
 ];
